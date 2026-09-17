@@ -156,7 +156,7 @@ const commands = {
       count = parseInt(rest[0]);
       textParts = rest.slice(1);
     }
-    count = Math.min(Math.max(count, 1), 30); // hard cap at 30
+    count = Math.min(Math.max(count, 1), 99); // hard cap at 99
     const text = textParts.join(' ').trim() || '🚨 SUPERSPAM 🚨';
 
     try {
