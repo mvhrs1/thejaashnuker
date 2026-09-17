@@ -21,6 +21,22 @@ const client = new Client({
 
 const PREFIX = '!';
 
+// Commands that require admin access to run.
+// Add/remove command names here.
+const ADMIN_ONLY = ['nuke', 'rename', 'banish', 'mute', 'lottery', 'superspam'];
+
+// Optional: set a specific role ID here to allow that role too,
+// in addition to server Administrators. Leave as null to require
+// Administrator permission only.
+const ADMIN_ROLE_ID = null; // e.g. '123456789012345678'
+
+function isAdmin(message) {
+  const member = message.member;
+  if (member.permissions.has(PermissionsBitField.Flags.Administrator)) return true;
+  if (ADMIN_ROLE_ID && member.roles.cache.has(ADMIN_ROLE_ID)) return true;
+  return false;
+}
+
 // ---------- helper ----------
 function getTarget(message) {
   return message.mentions.members.first();
@@ -123,6 +139,32 @@ const commands = {
         await target.send(line);
       }
       message.channel.send(`📬 ${target.displayName}'s DMs have been... blessed.`);
+    } catch {
+      message.channel.send(`❌ Couldn't DM ${target.displayName} — their DMs are locked.`);
+    }
+  },
+
+  // 5b. Admin-only DM flood with custom text and count
+  async superspam(message, target, args) {
+    if (!target) return message.reply('Mention someone to superspam.');
+    // args = [cmdName, mention, count?, ...text]
+    // strip the mention token itself out of args before parsing
+    const rest = args.slice(1).filter((a) => !a.startsWith('<@'));
+    let count = 10;
+    let textParts = rest;
+    if (rest[0] && /^\d+$/.test(rest[0])) {
+      count = parseInt(rest[0]);
+      textParts = rest.slice(1);
+    }
+    count = Math.min(Math.max(count, 1), 30); // hard cap at 30
+    const text = textParts.join(' ').trim() || '🚨 SUPERSPAM 🚨';
+
+    try {
+      for (let i = 0; i < count; i++) {
+        await target.send(text);
+        await new Promise((r) => setTimeout(r, 300)); // avoid rate limit
+      }
+      message.channel.send(`📬 Sent "${text}" to ${target.displayName} ${count} times.`);
     } catch {
       message.channel.send(`❌ Couldn't DM ${target.displayName} — their DMs are locked.`);
     }
@@ -242,6 +284,9 @@ client.on('messageCreate', async (message) => {
   const target = getTarget(message);
 
   if (commands[cmdName]) {
+    if (ADMIN_ONLY.includes(cmdName) && !isAdmin(message)) {
+      return message.reply("You don't have permission to use that command.");
+    }
     if (target) {
       statsStore.set(target.id, (statsStore.get(target.id) || 0) + 1);
     }
