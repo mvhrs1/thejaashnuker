@@ -250,11 +250,14 @@ const commands = {
     });
   },
 
-  // 13. Fake courtroom trial — supports custom charge: !trial @user [custom charge]
+  // 13. Fake courtroom trial — locks channel, slower pacing, big charge header
   async trial(message, target, args) {
     if (!target) return message.reply('Mention someone to put on trial.');
 
-    // Everything after the command name and mention is the custom charge
+    if (!message.guild.members.me.permissions.has(PermissionsBitField.Flags.ManageChannels)) {
+      return message.reply('I need Manage Channels permission to lock the channel for a trial.');
+    }
+
     const customCharge = args
       .slice(1)
       .filter((a) => !a.startsWith('<@'))
@@ -269,7 +272,7 @@ const commands = {
       'Lying about their KD ratio',
       'Going AFK in a ranked game',
       'Calling a 1v1 and then backing out',
-      'Talking in a 9-year-old\'s Roblox voice',
+      "Talking in a 9-year-old's Roblox voice",
       'Owning a body pillow and not disclosing it',
       'Watching YouTube at 2am instead of sleeping',
       'Sending "lol" when nothing is funny',
@@ -278,13 +281,13 @@ const commands = {
       'Typing "..." and then saying nothing',
       'Being the last one alive and throwing',
       'Blaming lag when it was a skill issue',
-      'Pretending to be offline when they\'re clearly online',
+      "Pretending to be offline when they're clearly online",
       'Having an unironic Minecraft dirt house',
       'Stealing someone\'s kill and saying "you\'re welcome"',
       'Downloading games and never playing them',
       'Being a backseat gamer',
       'Having 400 hours in a game and still being bronze',
-      'Sending a meme that\'s 3 years old like it\'s new',
+      "Sending a meme that's 3 years old like it's new",
       'Starting beef and then going quiet',
       'Being the reason the squad lost',
       'Asking "who asked" when nobody asked them either',
@@ -308,12 +311,35 @@ const commands = {
     ];
 
     const charge = customCharge || randomFrom(charges);
+    const everyoneRole = message.guild.roles.everyone;
+    const originalOverwrite = message.channel.permissionOverwrites.cache.get(everyoneRole.id);
 
-    await message.channel.send(`\u2696\uFE0F **COURT IS NOW IN SESSION** \u2696\uFE0F\nThe defendant, **${target.displayName}**, stands accused of:\n> ${charge}`);
-    await new Promise((r) => setTimeout(r, 1500));
-    await message.channel.send('\uD83E\uDDD1\u200D\u2696\uFE0F The jury is deliberating...');
-    await new Promise((r) => setTimeout(r, 1500));
-    await message.channel.send(`\uD83D\uDCDC **VERDICT:** ${target.displayName} is... ${randomFrom(verdicts)}`);
+    try {
+      // Lock the channel
+      await message.channel.permissionOverwrites.edit(everyoneRole, { SendMessages: false });
+
+      await message.channel.send('\u2696\uFE0F **COURT IS NOW IN SESSION** \u2696\uFE0F');
+      await new Promise((r) => setTimeout(r, 2500));
+
+      await message.channel.send(`The defendant, **${target.displayName}**, stands accused of:\n# ${charge}`);
+      await new Promise((r) => setTimeout(r, 3000));
+
+      await message.channel.send('\uD83E\uDDD1\u200D\u2696\uFE0F The jury is deliberating...');
+      await new Promise((r) => setTimeout(r, 3000));
+
+      await message.channel.send(`\uD83D\uDCDC **VERDICT:** ${target.displayName} is... ${randomFrom(verdicts)}`);
+    } finally {
+      // Restore channel permissions
+      if (originalOverwrite) {
+        const wasDenied = originalOverwrite.deny.has(PermissionsBitField.Flags.SendMessages);
+        const wasAllowed = originalOverwrite.allow.has(PermissionsBitField.Flags.SendMessages);
+        await message.channel.permissionOverwrites.edit(everyoneRole, {
+          SendMessages: wasAllowed ? true : wasDenied ? false : null,
+        }).catch(() => {});
+      } else {
+        await message.channel.permissionOverwrites.delete(everyoneRole).catch(() => {});
+      }
+    }
   },
 
   // 14. Random stat rating (deletes invoking message)
