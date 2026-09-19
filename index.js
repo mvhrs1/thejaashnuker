@@ -250,19 +250,50 @@ const commands = {
     });
   },
 
-  // 13. Fake courtroom trial
-  async trial(message, target) {
+  // 13. Fake courtroom trial — supports custom charge: !trial @user [custom charge]
+  async trial(message, target, args) {
     if (!target) return message.reply('Mention someone to put on trial.');
+
+    // Everything after the command name and mention is the custom charge
+    const customCharge = args
+      .slice(1)
+      .filter((a) => !a.startsWith('<@'))
+      .join(' ')
+      .trim();
+
     const charges = [
-      'Crimes against the group chat',
-      'Excessive use of "ratio"',
-      'Being mid on main',
-      'Unauthorized L takes',
-      'Ghosting the server for 3 days',
-      'Sending a voice message longer than 60 seconds',
-      'Using Comic Sans unironically',
-      'Claiming they "carried" last game',
+      'Being bad at Siege',
+      'Texting the huzz',
+      'Gooning',
+      'Playing too much Roblox',
+      'Lying about their KD ratio',
+      'Going AFK in a ranked game',
+      'Calling a 1v1 and then backing out',
+      'Talking in a 9-year-old\'s Roblox voice',
+      'Owning a body pillow and not disclosing it',
+      'Watching YouTube at 2am instead of sleeping',
+      'Sending "lol" when nothing is funny',
+      'Leaving someone on read for 3 days',
+      'Using their phone during a movie',
+      'Typing "..." and then saying nothing',
+      'Being the last one alive and throwing',
+      'Blaming lag when it was a skill issue',
+      'Pretending to be offline when they\'re clearly online',
+      'Having an unironic Minecraft dirt house',
+      'Stealing someone\'s kill and saying "you\'re welcome"',
+      'Downloading games and never playing them',
+      'Being a backseat gamer',
+      'Having 400 hours in a game and still being bronze',
+      'Sending a meme that\'s 3 years old like it\'s new',
+      'Starting beef and then going quiet',
+      'Being the reason the squad lost',
+      'Asking "who asked" when nobody asked them either',
+      'Having a Spotify wrapped that should be illegal',
+      'Rage quitting and pretending the game crashed',
+      'Claiming they "don\'t even care" when they clearly do',
+      'Being parasocial about a streamer',
     ];
+
     const verdicts = [
       'GUILTY \u2014 sentenced to 1 (one) cringe.',
       'GUILTY \u2014 must send a voice memo apology within 24 hours.',
@@ -270,8 +301,15 @@ const commands = {
       'GUILTY \u2014 banned from using the word "bruh" for a week.',
       'GUILTY on all counts \u2014 reputation status: cooked.',
       'NOT GUILTY \u2014 case dismissed due to lack of rizz-related evidence.',
+      'GUILTY \u2014 sentenced to touch grass immediately.',
+      'GUILTY \u2014 must publicly apologize in this channel.',
+      'NOT GUILTY \u2014 insufficient evidence (the jury was also bad at Siege).',
+      'GUILTY \u2014 stripped of all gamer privileges for 48 hours.',
     ];
-    await message.channel.send(`\u2696\uFE0F **COURT IS NOW IN SESSION** \u2696\uFE0F\nThe defendant, **${target.displayName}**, stands accused of:\n> ${randomFrom(charges)}`);
+
+    const charge = customCharge || randomFrom(charges);
+
+    await message.channel.send(`\u2696\uFE0F **COURT IS NOW IN SESSION** \u2696\uFE0F\nThe defendant, **${target.displayName}**, stands accused of:\n> ${charge}`);
     await new Promise((r) => setTimeout(r, 1500));
     await message.channel.send('\uD83E\uDDD1\u200D\u2696\uFE0F The jury is deliberating...');
     await new Promise((r) => setTimeout(r, 1500));
@@ -321,6 +359,30 @@ const commands = {
       '100%. Do not question it.',
     ];
     message.channel.send(`\uD83C\uDFB1 ${randomFrom(answers)}`);
+  },
+
+  // 17. Among Us imposter accusation
+  async imposter(message) {
+    const members = message.guild.members.cache.filter((m) => !m.user.bot);
+    if (members.size === 0) return message.reply('No members found.');
+    const suspect = randomFrom([...members.values()]);
+    const tasks = [
+      'was seen venting in electrical',
+      'did 0 tasks the entire game',
+      'faked wires in front of everyone',
+      'killed someone right in front of a crewmate',
+      'called a meeting with no evidence and blamed someone random',
+      'was standing still in medbay doing absolutely nothing',
+      'followed someone around the entire map',
+      'voted skip every single round',
+      'left the game right after being voted out',
+      'sus walked past a body and kept going',
+    ];
+    await message.channel.send('\uD83D\uDEA8 **EMERGENCY MEETING** \uD83D\uDEA8');
+    await new Promise((r) => setTimeout(r, 1000));
+    await message.channel.send(`${suspect} ${randomFrom(tasks)}.`);
+    await new Promise((r) => setTimeout(r, 800));
+    await message.channel.send(`**${suspect.displayName} is sus. Voting them out.** \uD83D\uDDA4`);
   },
 };
 
